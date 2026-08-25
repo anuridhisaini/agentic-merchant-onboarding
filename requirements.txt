@@ -1,0 +1,3 @@
+# No external dependencies required to run the pipeline as-is (Python 3.10+ stdlib only).
+# Uncomment when you wire up real LLM calls in llm.py:
+# anthropic>=0.40.0
