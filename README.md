@@ -43,7 +43,7 @@ $env:ANTHROPIC_API_KEY="your-key-here"     # Windows PowerShell
 python run.py
 ```
 
-## Failure handling (Day 6 deliverable)
+## Failure handling and resilience
 
 `test_failure_handling.py` deliberately forces three failure modes and asserts
 the pipeline recovers correctly:
