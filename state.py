@@ -108,3 +108,26 @@ class MerchantApplication:
             "num_handoffs": len(self.handoff_log),
             "retries": self.retry_counts,
         }
+
+    def full_dict(self) -> dict:
+        """Complete serialization for the dashboard API - includes the full
+        handoff log and Q&A answers, not just the summary."""
+        return {
+            "application_id": self.application_id,
+            "business_name": self.business_name,
+            "industry": self.industry,
+            "country": self.country,
+            "monthly_volume_usd": self.monthly_volume_usd,
+            "scenario_tag": self.scenario_tag,
+            "final_stage": self.stage.value,
+            "final_decision": self.final_decision,
+            "decision_reason": self.decision_reason,
+            "kyc_status": self.kyc_status,
+            "kyc_flags": self.kyc_flags,
+            "risk_level": self.risk_level.value,
+            "risk_score": self.risk_score,
+            "risk_reasons": self.risk_reasons,
+            "qa_answers": self.qa_answers,
+            "retries": self.retry_counts,
+            "handoff_log": [entry.to_dict() for entry in self.handoff_log],
+        }

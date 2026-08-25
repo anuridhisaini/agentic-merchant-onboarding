@@ -2,3 +2,7 @@
 # Claude API path in onboarding_qa.py (auto-enabled when ANTHROPIC_API_KEY is set).
 # Without this installed, the pipeline still runs fine using rule-based FAQ fallback.
 anthropic>=0.40.0
+
+# Web dashboard (api.py + static/index.html)
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0

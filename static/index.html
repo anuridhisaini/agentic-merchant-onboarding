@@ -1,0 +1,268 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Merchant Onboarding — Agent Pipeline</title>
+<style>
+  :root {
+    --gray: #9aa0a6; --gray-bg: #eef0f2;
+    --purple: #8a5fd6; --purple-bg: #efe6fb;
+    --teal: #3fae94; --teal-bg: #dff3ef;
+    --coral: #d9694f; --coral-bg: #fbe4e1;
+    --amber: #d6a13f; --amber-bg: #fcefd9;
+    --ink: #1f2328; --muted: #5b6169; --border: #e2e5e9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    margin: 0; background: #fafbfc; color: var(--ink);
+  }
+  header {
+    padding: 24px 32px; border-bottom: 1px solid var(--border); background: #fff;
+  }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 0; min-height: calc(100vh - 89px); }
+  .sidebar { border-right: 1px solid var(--border); padding: 20px; background: #fff; overflow-y: auto; }
+  .main { padding: 28px 32px; }
+
+  .sidebar h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
+  .mock-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+  .mock-item {
+    text-align: left; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    background: #fff; cursor: pointer; font-size: 13px; transition: all .15s;
+  }
+  .mock-item:hover { border-color: var(--purple); background: var(--purple-bg); }
+  .mock-item .name { font-weight: 600; display: block; }
+  .mock-item .tag { color: var(--muted); font-size: 11px; }
+
+  form { display: flex; flex-direction: column; gap: 10px; }
+  form label { font-size: 12px; color: var(--muted); margin-bottom: -6px; }
+  form input, form textarea, form select {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: inherit;
+  }
+  form button {
+    margin-top: 8px; padding: 10px; border: none; border-radius: 6px;
+    background: var(--purple); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  form button:hover { opacity: .9; }
+  form button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .pipeline { display: flex; flex-direction: column; gap: 0; max-width: 480px; margin-bottom: 32px; }
+  .stage {
+    border: 2px solid var(--border); border-radius: 10px; padding: 14px 16px; background: #fff;
+    opacity: .35; transform: translateY(6px); transition: all .4s ease;
+  }
+  .stage.active { opacity: 1; transform: translateY(0); }
+  .stage.gray.active { border-color: var(--gray); background: var(--gray-bg); }
+  .stage.purple.active { border-color: var(--purple); background: var(--purple-bg); }
+  .stage.teal.active { border-color: var(--teal); background: var(--teal-bg); }
+  .stage.coral.active { border-color: var(--coral); background: var(--coral-bg); }
+  .stage.amber.active { border-color: var(--amber); background: var(--amber-bg); }
+  .stage .title { font-weight: 700; font-size: 14px; }
+  .stage .reason { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .connector { width: 2px; height: 20px; background: var(--border); margin-left: 22px; }
+
+  .result-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 20px; max-width: 480px;
+    background: #fff; display: none;
+  }
+  .result-card.show { display: block; }
+  .decision-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;
+  }
+  .decision-badge.approved { background: var(--teal-bg); color: var(--teal); }
+  .decision-badge.escalated { background: var(--amber-bg); color: var(--amber); }
+  .decision-badge.rejected { background: var(--coral-bg); color: var(--coral); }
+  .qa-list { margin-top: 14px; font-size: 13px; }
+  .qa-list .q { font-weight: 600; margin-top: 8px; }
+  .qa-list .a { color: var(--muted); margin-top: 2px; }
+
+  .metrics-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .metric-box {
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; background: #fff; min-width: 120px;
+  }
+  .metric-box .num { font-size: 22px; font-weight: 700; }
+  .metric-box .label { font-size: 11.5px; color: var(--muted); }
+
+  .empty-state { color: var(--muted); font-size: 14px; }
+  .loading { color: var(--purple); font-size: 13px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Merchant Onboarding — Multi-Agent Pipeline</h1>
+  <p>Pick a mock application or submit your own — watch it move through KYC, risk scoring, and Q&amp;A in real time.</p>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Quick demo — mock applications</h2>
+    <div id="mockList" class="mock-list"><p class="empty-state">Loading…</p></div>
+
+    <h2>Submit a custom application</h2>
+    <form id="customForm">
+      <label>Business name</label>
+      <input name="business_name" required placeholder="e.g. Acme Coffee Co">
+      <label>Industry</label>
+      <input name="industry" required placeholder="e.g. crypto, retail, food_service">
+      <label>Country (2-letter code)</label>
+      <input name="country" required placeholder="e.g. US">
+      <label>Monthly volume (USD)</label>
+      <input name="monthly_volume_usd" type="number" required placeholder="e.g. 15000">
+      <label>Documents present (check all that apply)</label>
+      <label><input type="checkbox" name="doc_id" style="width:auto"> ID document</label>
+      <label><input type="checkbox" name="doc_license" style="width:auto"> Business license</label>
+      <label><input type="checkbox" name="doc_bank" style="width:auto"> Bank statement</label>
+      <label>Question for onboarding Q&amp;A (optional)</label>
+      <textarea name="question" rows="2" placeholder="e.g. How long does approval take?"></textarea>
+      <button type="submit">Run through pipeline</button>
+    </form>
+  </aside>
+
+  <main class="main">
+    <div id="metricsBar" class="metrics-bar"></div>
+    <div id="pipeline" class="pipeline"></div>
+    <div id="resultCard" class="result-card"></div>
+  </main>
+</div>
+
+<script>
+const STAGE_DEFS = [
+  { key: "intake", title: "Application intake", color: "gray" },
+  { key: "kyc_checker", title: "KYC doc checker", color: "purple" },
+  { key: "risk_scorer", title: "Risk scorer", color: "purple" },
+  { key: "onboarding_qa", title: "Onboarding Q&A", color: "purple" },
+  { key: "FINAL", title: "Final decision", color: null },
+];
+
+async function loadMockList() {
+  const res = await fetch("/api/mock-applications");
+  const apps = await res.json();
+  const container = document.getElementById("mockList");
+  container.innerHTML = "";
+  apps.forEach(a => {
+    const btn = document.createElement("button");
+    btn.className = "mock-item";
+    btn.innerHTML = `<span class="name">${a.business_name || "(unnamed)"}</span><span class="tag">${a.application_id} · ${a.scenario_tag}</span>`;
+    btn.onclick = () => runMock(a.application_id);
+    container.appendChild(btn);
+  });
+  loadMetrics();
+}
+
+async function loadMetrics() {
+  const res = await fetch("/api/metrics");
+  const data = await res.json();
+  const bar = document.getElementById("metricsBar");
+  const approved = data.decisions.approved || 0;
+  const escalated = data.decisions.escalated || 0;
+  const rejected = data.decisions.rejected || 0;
+  bar.innerHTML = `
+    <div class="metric-box"><div class="num">${data.total_applications}</div><div class="label">Total processed</div></div>
+    <div class="metric-box"><div class="num">${approved}</div><div class="label">Approved</div></div>
+    <div class="metric-box"><div class="num">${escalated}</div><div class="label">Escalated</div></div>
+    <div class="metric-box"><div class="num">${rejected}</div><div class="label">Rejected</div></div>
+    <div class="metric-box"><div class="num">${data.average_handoffs}</div><div class="label">Avg handoffs</div></div>
+  `;
+}
+
+async function runMock(id) {
+  setPipelineLoading();
+  const res = await fetch(`/api/run/${id}`, { method: "POST" });
+  const data = await res.json();
+  animatePipeline(data);
+}
+
+function setPipelineLoading() {
+  document.getElementById("pipeline").innerHTML = '<p class="loading">Running through agents…</p>';
+  document.getElementById("resultCard").className = "result-card";
+}
+
+function animatePipeline(data) {
+  const container = document.getElementById("pipeline");
+  container.innerHTML = "";
+
+  const log = data.handoff_log;
+  const stageOrder = ["intake", "kyc_checker", "risk_scorer", "onboarding_qa", "FINAL"];
+  const stageReasons = { intake: "Application received" };
+  log.forEach(entry => {
+    if (entry.to === "human_escalation") stageReasons[entry.from] = entry.reason;
+    else stageReasons[entry.from] = entry.reason;
+  });
+  const lastEntry = log[log.length - 1];
+  if (lastEntry) stageReasons["FINAL"] = lastEntry.reason;
+
+  const activeStages = stageOrder.filter(s => s === "intake" || log.some(e => e.from === s) || s === "FINAL");
+
+  stageOrder.forEach((key, i) => {
+    const def = STAGE_DEFS.find(d => d.key === key);
+    const div = document.createElement("div");
+    let color = def.color;
+    if (key === "FINAL") {
+      color = data.final_decision === "approved" ? "teal" : data.final_decision === "rejected" ? "coral" : "amber";
+    }
+    div.className = `stage ${color}`;
+    div.innerHTML = `<div class="title">${def.title}</div><div class="reason">${stageReasons[key] || "—"}</div>`;
+    container.appendChild(div);
+    if (i < stageOrder.length - 1) {
+      const conn = document.createElement("div");
+      conn.className = "connector";
+      container.appendChild(conn);
+    }
+  });
+
+  const stages = container.querySelectorAll(".stage");
+  stages.forEach((el, i) => setTimeout(() => el.classList.add("active"), i * 350));
+
+  setTimeout(() => showResultCard(data), stages.length * 350 + 200);
+}
+
+function showResultCard(data) {
+  const card = document.getElementById("resultCard");
+  card.className = "result-card show";
+  const qaHtml = Object.entries(data.qa_answers || {}).map(([q, a]) =>
+    `<div class="q">${q}</div><div class="a">${a}</div>`
+  ).join("");
+  card.innerHTML = `
+    <h3 style="margin-top:0">${data.business_name || data.application_id}</h3>
+    <span class="decision-badge ${data.final_decision}">${data.final_decision.toUpperCase()}</span>
+    <p style="color:var(--muted); font-size:13px; margin-top:10px;">${data.decision_reason}</p>
+    <p style="font-size:12.5px; color:var(--muted)">Risk: ${data.risk_level} (score ${data.risk_score}) · KYC: ${data.kyc_status}</p>
+    ${qaHtml ? `<div class="qa-list">${qaHtml}</div>` : ""}
+  `;
+}
+
+document.getElementById("customForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const documents = {};
+  if (form.doc_id.checked) documents.id_document = "present";
+  if (form.doc_license.checked) documents.business_license = "present";
+  if (form.doc_bank.checked) documents.bank_statement = "present";
+
+  const payload = {
+    business_name: form.business_name.value,
+    industry: form.industry.value,
+    country: form.country.value,
+    monthly_volume_usd: parseFloat(form.monthly_volume_usd.value),
+    documents,
+    questions: form.question.value ? [form.question.value] : [],
+  };
+
+  setPipelineLoading();
+  const res = await fetch("/api/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  animatePipeline(data);
+});
+
+loadMockList();
+</script>
+</body>
+</html>

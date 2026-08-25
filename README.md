@@ -67,7 +67,21 @@ agent, destination agent, a human-readable reason, and a state snapshot. This is
 what lets you answer "why did this happen" for any application, not just "what
 happened." See `HandoffLogEntry` in `state.py`.
 
-## Running the full pipeline
+## Web dashboard
+
+A lightweight browser UI on top of the same pipeline — pick a mock application
+or submit your own, and watch it move through KYC → risk → Q&A → decision live,
+instead of reading terminal output. Nothing about the core pipeline changes;
+`api.py` is a thin FastAPI layer over `orchestrator.py`.
+
+```bash
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
+
+Then open **http://localhost:8000** in your browser.
+
+## Running the full pipeline (CLI)
 
 ```bash
 python run.py              # run all 15 mock applications, print summary + metrics
@@ -77,8 +91,8 @@ python test_failure_handling.py   # run the three forced-failure scenarios
 
 Output includes an aggregate metrics report (decision breakdown, average handoffs
 per application, retry count, escalation rate) and writes `run_results.json` with
-full structured results per application — this is the honest throughput/accuracy
-data referenced in the project's Day 8 testing plan, not a single cherry-picked run.
+full structured results per application — honest throughput/accuracy data from
+running the whole mock dataset, not a single cherry-picked run.
 
 ## Mock data
 
@@ -88,9 +102,10 @@ agent development, failure-handling tests, and metrics reporting.
 
 ## Extending this
 
-- Swap `llm.py`'s `call_llm()` for a real Anthropic API call to make
-  `onboarding_qa.py` genuinely conversational
 - Add a 4th risk factor (e.g. chargeback history) to `risk_scorer.py`
 - The orchestrator's routing is currently linear (KYC → risk → QA); if you want
   a branching flow (e.g. skip QA if no questions submitted), that logic belongs
   in `orchestrator.run()`
+- The dashboard's pipeline visualization currently shows all 5 stages regardless
+  of whether each was reached — a nice enhancement would be hiding stages the
+  application never went through
