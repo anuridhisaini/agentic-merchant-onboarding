@@ -9,7 +9,7 @@ swap in call_llm() with the FAQ text as context (a tiny RAG) for the real thing.
 """
 
 from state import MerchantApplication, Stage
-from llm import call_llm, USE_LLM
+from llm import call_llm, USE_LLM, LLMCallError
 
 FAQ = {
     "approval time": "Most applications are reviewed within 2-3 business days after all documents are submitted.",
@@ -31,12 +31,22 @@ def _match_faq(question: str) -> str:
 
 def run(app: MerchantApplication) -> MerchantApplication:
     for question in app.questions:
+        answer = None
         if USE_LLM:
-            context = "\n".join(f"- {k}: {v}" for k, v in FAQ.items())
-            answer = call_llm(
-                system_prompt=f"You are a merchant onboarding assistant. Use only this FAQ context:\n{context}",
-                user_prompt=question,
-            )
+            try:
+                context = "\n".join(f"- {k}: {v}" for k, v in FAQ.items())
+                answer = call_llm(
+                    system_prompt=(
+                        "You are a merchant onboarding assistant. Answer briefly and factually "
+                        f"using only this FAQ context:\n{context}\n"
+                        "If the question isn't covered, say it needs a human reviewer."
+                    ),
+                    user_prompt=question,
+                )
+            except LLMCallError as e:
+                # real call failed (network, rate limit, bad key) - fall back rather than crash
+                app.kyc_flags.append(f"QA_LLM_FALLBACK: {e}")
+                answer = _match_faq(question)
         else:
             answer = _match_faq(question)
         app.qa_answers[question] = answer

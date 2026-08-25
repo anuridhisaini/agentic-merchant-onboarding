@@ -1,3 +1,4 @@
-# No external dependencies required to run the pipeline as-is (Python 3.10+ stdlib only).
-# Uncomment when you wire up real LLM calls in llm.py:
-# anthropic>=0.40.0
+# Core pipeline runs on stdlib alone. This is only needed for the real
+# Claude API path in onboarding_qa.py (auto-enabled when ANTHROPIC_API_KEY is set).
+# Without this installed, the pipeline still runs fine using rule-based FAQ fallback.
+anthropic>=0.40.0

@@ -4,6 +4,16 @@ A 4-agent pipeline (orchestrator + 3 specialist agents) that processes merchant
 onboarding applications: document verification, risk scoring, and Q&A —
 with explicit failure handling and full handoff logging.
 
+## Architecture
+
+**Main pipeline:**
+
+![Main pipeline architecture](docs/architecture_main_pipeline.svg)
+
+**Failure handling and escalation paths:**
+
+![Failure handling architecture](docs/architecture_failure_handling.svg)
+
 ## Agents
 
 | Agent | Responsibility | File |
@@ -13,14 +23,25 @@ with explicit failure handling and full handoff logging.
 | Risk Scorer | Scores 0-100 based on industry/country/volume/KYC status, with logged reasons | `agents/risk_scorer.py` |
 | Onboarding Q&A | Answers merchant questions (FAQ lookup, swap for LLM+RAG easily) | `agents/onboarding_qa.py` |
 
-## Why rule-based by default
+## LLM integration (auto-detected, with safe fallback)
 
-Every agent runs on deterministic logic, not LLM calls, by default. This means:
-- The demo is 100% reproducible — same input, same output, every time
-- No API key needed to run or judge the repo
-- `llm.py` is the single chokepoint to flip in real Claude API calls (see the
-  commented example in `call_llm()`) — `onboarding_qa.py` is the natural place
-  to start since it benefits most from open-ended reasoning
+`llm.py` auto-detects whether `ANTHROPIC_API_KEY` is set in your environment:
+
+- **Key not set** → the whole pipeline runs on deterministic rule-based logic.
+  100% reproducible, no API key needed, works cold for anyone cloning the repo
+  (including judges).
+- **Key set** → `onboarding_qa.py` uses real Claude calls to answer merchant
+  questions conversationally. If a real API call fails for any reason (network,
+  rate limit, timeout), the agent automatically falls back to the rule-based FAQ
+  lookup and logs why — the pipeline never crashes because of a flaky external call.
+
+To enable real LLM calls:
+```bash
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY="your-key-here"   # Mac/Linux
+$env:ANTHROPIC_API_KEY="your-key-here"     # Windows PowerShell
+python run.py
+```
 
 ## Failure handling (Day 6 deliverable)
 
